@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class GeminiService {
-    private static final String API_KEY = "AIzaSyC8TiuDY8YF3UzwZzLpkb5CbL90jigYHPM"; 
+    private static final String API_KEY = "AIzaSyAY_e0SYBaAXb3f1ghBHxderhQaD7w5dNM"; 
     private static final String API_URL =
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + API_KEY;
     

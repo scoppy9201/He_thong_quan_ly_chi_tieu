@@ -52,6 +52,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerDateModel;
 import java.time.format.DateTimeFormatter;
 
+
 /**
  *
  * @author Admin
@@ -59,6 +60,7 @@ import java.time.format.DateTimeFormatter;
 public class panelQuanLyGiaoDich extends javax.swing.JPanel {
 
     private Transaction selectedTransaction = null;
+    private panelQuanLyNganSach panelNganSach;
     private boolean isEditMode = false;
     private javax.swing.Timer searchTimer;
     private int userId;
@@ -747,6 +749,12 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             return null;
         }
     }
+    
+    public void setPanelQuanLyNganSach(panelQuanLyNganSach panel) {
+        this.panelNganSach = panel;
+    }
+    
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always

@@ -230,11 +230,18 @@ public class MainFrame extends javax.swing.JFrame {
     }
     
     public void openEmailTab() {
-    User currentUser = getCurrentUserOrShowError();
-    if (currentUser == null) return;
-    panelEmail pnlEmail = new panelEmail(currentUser.getId());
-    openTab("Quản lý Email", pnlEmail);
-}
+        User currentUser = getCurrentUserOrShowError();
+        if (currentUser == null) return;
+        panelEmail pnlEmail = new panelEmail(currentUser.getId());
+        openTab("Quản lý Email", pnlEmail);
+    }
+    
+    public void openBudgetTab() {
+        User currentUser = getCurrentUserOrShowError();
+        if (currentUser == null) return;
+        panelQuanLyNganSach pnlNganSach = new panelQuanLyNganSach(currentUser.getId());
+        openTab("Quản lý ngân sách", pnlNganSach);
+    }
 
     /**
      * This method is called from within the constructor to initialize sthe form.
@@ -253,11 +260,15 @@ public class MainFrame extends javax.swing.JFrame {
         btnListChiTieu = new javax.swing.JButton();
         jSeparator8 = new javax.swing.JToolBar.Separator();
         btnListDanhMuc = new javax.swing.JButton();
+        jSeparator15 = new javax.swing.JToolBar.Separator();
+        btnQLNS = new javax.swing.JButton();
         jSeparator11 = new javax.swing.JToolBar.Separator();
         btnBieuDoChTieu = new javax.swing.JButton();
         jSeparator10 = new javax.swing.JToolBar.Separator();
         jButton1 = new javax.swing.JButton();
+        jSeparator13 = new javax.swing.JToolBar.Separator();
         jButton2 = new javax.swing.JButton();
+        jSeparator14 = new javax.swing.JToolBar.Separator();
         btnLock = new javax.swing.JButton();
         btnCloseTab = new javax.swing.JButton();
         tabMain = new javax.swing.JTabbedPane();
@@ -343,6 +354,21 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
         jToolBar1.add(btnListDanhMuc);
+        jToolBar1.add(jSeparator15);
+
+        btnQLNS.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnQLNS.setText("Quản lý ngân sách");
+        btnQLNS.setFocusable(false);
+        btnQLNS.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        btnQLNS.setIconTextGap(3);
+        btnQLNS.setMargin(new java.awt.Insets(5, 10, 5, 10));
+        btnQLNS.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        btnQLNS.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnQLNSActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(btnQLNS);
         jToolBar1.add(jSeparator11);
 
         btnBieuDoChTieu.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -361,7 +387,6 @@ public class MainFrame extends javax.swing.JFrame {
         jToolBar1.add(jSeparator10);
 
         jButton1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/Chatbot.png"))); // NOI18N
         jButton1.setText("Trợ lí AI");
         jButton1.setFocusable(false);
         jButton1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -372,9 +397,9 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
         jToolBar1.add(jButton1);
+        jToolBar1.add(jSeparator13);
 
         jButton2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/gmail_2.png"))); // NOI18N
         jButton2.setText("Email");
         jButton2.setFocusable(false);
         jButton2.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -385,6 +410,7 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
         jToolBar1.add(jButton2);
+        jToolBar1.add(jSeparator14);
 
         btnLock.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         btnLock.setText("Lock");
@@ -415,7 +441,7 @@ public class MainFrame extends javax.swing.JFrame {
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 841, Short.MAX_VALUE)
+            .addGap(0, 931, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -539,10 +565,11 @@ public class MainFrame extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(jToolBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(tabMain))
-            .addComponent(jToolBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                .addComponent(tabMain)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -675,8 +702,12 @@ public class MainFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-                  openEmailTab();
+        openEmailTab();
     }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void btnQLNSActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnQLNSActionPerformed
+        openBudgetTab();
+    }//GEN-LAST:event_btnQLNSActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -685,6 +716,7 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JButton btnListChiTieu;
     private javax.swing.JButton btnListDanhMuc;
     private javax.swing.JButton btnLock;
+    private javax.swing.JButton btnQLNS;
     private javax.swing.JButton btnThemChiTieu;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
@@ -700,6 +732,9 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JToolBar.Separator jSeparator10;
     private javax.swing.JToolBar.Separator jSeparator11;
+    private javax.swing.JToolBar.Separator jSeparator13;
+    private javax.swing.JToolBar.Separator jSeparator14;
+    private javax.swing.JToolBar.Separator jSeparator15;
     private javax.swing.JPopupMenu.Separator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JPopupMenu.Separator jSeparator4;
@@ -727,6 +762,9 @@ public class MainFrame extends javax.swing.JFrame {
         resizeIcon(btnListChiTieu, "/resources/expenses.png");
         resizeIcon(btnBieuDoChTieu, "/resources/pie_chart.png");
         resizeIcon(btnListDanhMuc, "/resources/categories.png");
+        resizeIcon(jButton1, "/resources/chatbot_1.png");
+        resizeIcon(jButton2, "/resources/gmail_3.png");
+        resizeIcon(btnQLNS, "/resources/budget.png");
         resizeIcon(btnLock, "/resources/lock.png");
         resizeIcon(btnCloseTab, "/resources/tab.png");
     }
