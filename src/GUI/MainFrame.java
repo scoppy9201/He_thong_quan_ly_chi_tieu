@@ -212,6 +212,30 @@ public class MainFrame extends javax.swing.JFrame {
         panelHeThong pnlHeThong = new panelHeThong();
         openTab("Về chúng tôi", pnlHeThong);
     }
+    private void openChatbotTab() {
+        try {
+            User currentUser = getCurrentUserOrShowError();
+            if (currentUser == null) return;
+
+            panelChatbot pnlChatbot = new panelChatbot(currentUser.getId());
+            openTab("Trợ lí AI", pnlChatbot);
+
+        } catch (ClassNotFoundException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Lỗi tải Chatbot (thiếu driver hoặc cấu hình DB)",
+                "Lỗi hệ thống",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+    
+    public void openEmailTab() {
+    User currentUser = getCurrentUserOrShowError();
+    if (currentUser == null) return;
+    panelEmail pnlEmail = new panelEmail(currentUser.getId());
+    openTab("Quản lý Email", pnlEmail);
+}
+
     /**
      * This method is called from within the constructor to initialize sthe form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -232,6 +256,8 @@ public class MainFrame extends javax.swing.JFrame {
         jSeparator11 = new javax.swing.JToolBar.Separator();
         btnBieuDoChTieu = new javax.swing.JButton();
         jSeparator10 = new javax.swing.JToolBar.Separator();
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
         btnLock = new javax.swing.JButton();
         btnCloseTab = new javax.swing.JButton();
         tabMain = new javax.swing.JTabbedPane();
@@ -255,6 +281,7 @@ public class MainFrame extends javax.swing.JFrame {
         mnDSDM = new javax.swing.JMenuItem();
         jMenu3 = new javax.swing.JMenu();
         mnBieuDo = new javax.swing.JMenuItem();
+        jMenuItem2 = new javax.swing.JMenuItem();
         jMenu4 = new javax.swing.JMenu();
         mnHuongDan = new javax.swing.JMenuItem();
         mnHeThong = new javax.swing.JMenuItem();
@@ -332,6 +359,32 @@ public class MainFrame extends javax.swing.JFrame {
         });
         jToolBar1.add(btnBieuDoChTieu);
         jToolBar1.add(jSeparator10);
+
+        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jButton1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/Chatbot.png"))); // NOI18N
+        jButton1.setText("Trợ lí AI");
+        jButton1.setFocusable(false);
+        jButton1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        jButton1.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(jButton1);
+
+        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/gmail_2.png"))); // NOI18N
+        jButton2.setText("Email");
+        jButton2.setFocusable(false);
+        jButton2.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        jButton2.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(jButton2);
 
         btnLock.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         btnLock.setText("Lock");
@@ -445,6 +498,16 @@ public class MainFrame extends javax.swing.JFrame {
         });
         jMenu3.add(mnBieuDo);
 
+        jMenuItem2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        jMenuItem2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/resources/Chatbot.png"))); // NOI18N
+        jMenuItem2.setText("Trợ lí AI");
+        jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem2ActionPerformed(evt);
+            }
+        });
+        jMenu3.add(jMenuItem2);
+
         jMenuBar1.add(jMenu3);
 
         jMenu4.setText("Trợ giúp");
@@ -479,7 +542,7 @@ public class MainFrame extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(tabMain))
-            .addComponent(jToolBar1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jToolBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -603,6 +666,18 @@ public class MainFrame extends javax.swing.JFrame {
         openThongKeBaoCao();
     }//GEN-LAST:event_mnBieuDoActionPerformed
 
+    private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
+        openChatbotTab();
+    }//GEN-LAST:event_jMenuItem2ActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        openChatbotTab();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+                  openEmailTab();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBieuDoChTieu;
@@ -611,11 +686,14 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JButton btnListDanhMuc;
     private javax.swing.JButton btnLock;
     private javax.swing.JButton btnThemChiTieu;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenu jMenu4;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JMenuItem jMenuItem1;
+    private javax.swing.JMenuItem jMenuItem2;
     private javax.swing.JMenuItem jMenuItem3;
     private javax.swing.JMenuItem jMenuItem4;
     private javax.swing.JPanel jPanel1;

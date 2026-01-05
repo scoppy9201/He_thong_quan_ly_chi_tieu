@@ -185,4 +185,43 @@ public class CategoryDAO {
         c.setNgayCapNhat(rs.getString("ngay_cap_nhat"));
         return c;
     }
+
+// Lấy danh mục theo loại (CHI/THU)
+public List<Category> getCategoriesByType(String loaiDanhMuc) {
+    List<Category> list = new ArrayList<>();
+    String sql = "SELECT * FROM danh_muc WHERE loai_danh_muc = ? AND trang_thai = 'ACTIVE' ORDER BY thu_tu_hien_thi";
+    
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        
+        ps.setString(1, loaiDanhMuc);
+        ResultSet rs = ps.executeQuery();
+        
+        while (rs.next()) {
+            list.add(mapResultSet(rs));
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return list;
+}
+    
+// Tìm danh mục theo tên (cho AI)
+public Category timDanhMucTheoTen(String tenDanhMuc) {
+    String sql = "SELECT * FROM danh_muc WHERE ten_danh_muc LIKE ? AND trang_thai = 'ACTIVE' LIMIT 1";
+    
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        
+        ps.setString(1, "%" + tenDanhMuc + "%");
+        ResultSet rs = ps.executeQuery();
+        
+        if (rs.next()) {
+            return mapResultSet(rs);
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return null;
+}
 }

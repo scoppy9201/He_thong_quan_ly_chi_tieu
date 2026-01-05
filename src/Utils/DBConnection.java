@@ -8,8 +8,8 @@ public class DBConnection {
 
     // Thông tin kết nối MySQL (cập nhật allowPublicKeyRetrieval=true)
     private static final String URL = "jdbc:mysql://localhost:3306/quan_ly_chi_tieu?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-    private static final String USER = "scoppy3105";
-    private static final String PASSWORD = "sp3105";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
 
     // Phương thức trả về Connection
     public static Connection getConnection() throws ClassNotFoundException {
