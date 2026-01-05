@@ -9,8 +9,11 @@ import Model.Category;
 import Model.CategoryItemPanel;
 import Model.Transaction;
 import Model.TransactionItemPanel;
+import Model.User;
 import Service.CategoryService;
+import Service.EmailService;
 import Service.TransactionService;
+import Service.UserService;
 import Utils.HintUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -59,6 +62,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
     private boolean isEditMode = false;
     private javax.swing.Timer searchTimer;
     private int userId;
+    private User currentUser;
     
     private static final String DATE_FORMAT = "dd/MM/yyyy";
     private final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
@@ -71,6 +75,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
      */
     public panelQuanLyGiaoDich(int userId) {
         this.userId = userId;
+        this.currentUser = new UserService().getUserById(userId);
         initComponents();
         SwingUtilities.invokeLater(() -> {
             setupLabelIcons();
@@ -419,6 +424,9 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             boolean success = new TransactionService().update(selectedTransaction);
 
             if (success) {
+                EmailService emailService = new EmailService();
+                emailService.sendTransactionUpdateNotification(currentUser, selectedTransaction);
+                
                 javax.swing.JOptionPane.showMessageDialog(this, 
                     "Cập nhật giao dịch thành công!");
                 loadTransactions();
@@ -446,6 +454,8 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             javax.swing.JOptionPane.YES_NO_OPTION);
         
         if (confirm == javax.swing.JOptionPane.YES_OPTION) {
+            EmailService emailService = new EmailService();
+            emailService.sendTransactionDeleteNotification(currentUser, selectedTransaction);
             boolean success = new TransactionService().delete(selectedTransaction.getId());
             
             if (success) {
@@ -1103,12 +1113,12 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
                             .addGroup(panelThongTinLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                                 .addComponent(lblAvatar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jPanel11, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE)
-                                .addComponent(jPanel8, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE)
-                                .addComponent(jPanel7, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE)
-                                .addComponent(jPanel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE)
-                                .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE)
-                                .addComponent(jPanel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 507, Short.MAX_VALUE))
+                                .addComponent(jPanel11, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addComponent(jPanel8, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addComponent(jPanel7, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addComponent(jPanel6, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE))
                             .addGroup(panelThongTinLayout.createSequentialGroup()
                                 .addGap(15, 15, 15)
                                 .addComponent(lblTongSo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)

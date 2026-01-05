@@ -439,5 +439,242 @@ public class TransactionDAO {
         gd.setAnhHoaDon(rs.getString("anh_hoa_don"));
         return gd;
     }
+    
+    
+    // Lấy giao dịch theo khoảng thời gian (cho AI)
+    public List<Transaction> getTransactionsByDateRange(int nguoiDungId, LocalDate tuNgay, LocalDate denNgay) {
+        List<Transaction> list = new ArrayList<>();
+        String sql = """
+            SELECT gd.*, dm.ten_danh_muc, dm.bieu_tuong 
+            FROM giao_dich gd
+            LEFT JOIN danh_muc dm ON gd.danh_muc_id = dm.id
+            WHERE gd.nguoi_dung_id = ? AND gd.ngay_giao_dich BETWEEN ? AND ?
+            ORDER BY gd.ngay_giao_dich DESC
+        """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, nguoiDungId);
+            ps.setDate(2, Date.valueOf(tuNgay));
+            ps.setDate(3, Date.valueOf(denNgay));
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(mapResultSet(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // Thống kê theo danh mục (cho AI)
+    public Map<String, Double> getStatsByCategory(int nguoiDungId, LocalDate tuNgay, LocalDate denNgay, String loaiGiaoDich) {
+        Map<String, Double> result = new HashMap<>();
+        String sql = """
+            SELECT dm.ten_danh_muc, SUM(gd.so_tien) as tong_tien
+            FROM giao_dich gd
+            JOIN danh_muc dm ON gd.danh_muc_id = dm.id
+            WHERE gd.nguoi_dung_id = ? AND gd.loai_giao_dich = ?
+            AND gd.ngay_giao_dich BETWEEN ? AND ?
+            GROUP BY dm.ten_danh_muc
+            ORDER BY tong_tien DESC
+        """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, nguoiDungId);
+            ps.setString(2, loaiGiaoDich);
+            ps.setDate(3, Date.valueOf(tuNgay));
+            ps.setDate(4, Date.valueOf(denNgay));
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                result.put(rs.getString("ten_danh_muc"), rs.getDouble("tong_tien"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // Tính tổng số tiền theo loại (cho AI)
+    public double getTotalByType(int nguoiDungId, LocalDate tuNgay, LocalDate denNgay, String loaiGiaoDich) {
+        String sql = """
+            SELECT COALESCE(SUM(so_tien), 0) as tong
+            FROM giao_dich
+            WHERE nguoi_dung_id = ? AND loai_giao_dich = ?
+            AND ngay_giao_dich BETWEEN ? AND ?
+        """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, nguoiDungId);
+            ps.setString(2, loaiGiaoDich);
+            ps.setDate(3, Date.valueOf(tuNgay));
+            ps.setDate(4, Date.valueOf(denNgay));
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("tong");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // Tìm giao dịch gần nhất theo keyword (cho AI update/delete)
+    public List<Transaction> findRecentTransactions(int nguoiDungId, String keyword, int limit) {
+        List<Transaction> list = new ArrayList<>();
+        String sql = """
+            SELECT gd.*, dm.ten_danh_muc, dm.bieu_tuong
+            FROM giao_dich gd
+            JOIN danh_muc dm ON gd.danh_muc_id = dm.id
+            WHERE gd.nguoi_dung_id = ? AND (dm.ten_danh_muc LIKE ? OR gd.ghi_chu LIKE ?)
+            ORDER BY gd.ngay_giao_dich DESC, gd.id DESC
+            LIMIT ?
+        """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, nguoiDungId);
+            ps.setString(2, "%" + keyword + "%");
+            ps.setString(3, "%" + keyword + "%");
+            ps.setInt(4, limit);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(mapResultSet(rs));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    
+    // Thống kê chi tiêu theo danh mục
+    public Map<String, Double> thongKeTheoDateMuc(int nguoiDungId, LocalDate tuNgay, LocalDate denNgay, Transaction.LoaiGiaoDich loai) {
+        Map<String, Double> result = new HashMap<>();
+        String sql = "SELECT d.ten_danh_muc, SUM(g.so_tien) as tong_tien " +
+                     "FROM giao_dich g JOIN danh_muc d ON g.danh_muc_id = d.id " +
+                     "WHERE g.nguoi_dung_id = ? AND g.loai_giao_dich = ? " +
+                     "AND g.ngay_giao_dich BETWEEN ? AND ? " +
+                     "GROUP BY d.ten_danh_muc ORDER BY tong_tien DESC";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, nguoiDungId);
+            ps.setString(2, loai.name());
+            ps.setDate(3, Date.valueOf(tuNgay));
+            ps.setDate(4, Date.valueOf(denNgay));
+            
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                result.put(rs.getString("ten_danh_muc"), rs.getDouble("tong_tien"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+    
+     // Tính tổng chi/thu trong khoảng thời gian
+    public double tinhTongSoTien(int nguoiDungId, LocalDate tuNgay, LocalDate denNgay, Transaction.LoaiGiaoDich loai) {
+        String sql = "SELECT COALESCE(SUM(so_tien), 0) as tong " +
+                     "FROM giao_dich WHERE nguoi_dung_id = ? AND loai_giao_dich = ? " +
+                     "AND ngay_giao_dich BETWEEN ? AND ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, nguoiDungId);
+            ps.setString(2, loai.name());
+            ps.setDate(3, Date.valueOf(tuNgay));
+            ps.setDate(4, Date.valueOf(denNgay));
+            
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("tong");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+    
+public List<Transaction> getByDate(int userId, LocalDate date) {
+
+    String sql = """
+        SELECT 
+            t.*, 
+            c.ten_danh_muc,
+            c.bieu_tuong
+        FROM giao_dich t
+        JOIN danh_muc c ON t.danh_muc_id = c.id
+        WHERE t.nguoi_dung_id = ?
+          AND DATE(t.ngay_giao_dich) = ?
+    """;
+
+    List<Transaction> list = new ArrayList<>();
+
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setInt(1, userId);
+        ps.setDate(2, Date.valueOf(date));
+
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            list.add(mapResultSet(rs));
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return list;
+}
+
+    
+public List<Transaction> getByDateRange(
+        int userId, LocalDate from, LocalDate to) {
+
+    String sql = """
+        SELECT 
+            t.*, 
+            c.ten_danh_muc,
+            c.bieu_tuong
+        FROM giao_dich t
+        JOIN danh_muc c ON t.danh_muc_id = c.id
+        WHERE t.nguoi_dung_id = ?
+          AND DATE(t.ngay_giao_dich) BETWEEN ? AND ?
+    """;
+
+    List<Transaction> list = new ArrayList<>();
+
+    try (Connection conn = DBConnection.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        ps.setInt(1, userId);
+        ps.setDate(2, Date.valueOf(from));
+        ps.setDate(3, Date.valueOf(to));
+
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            list.add(mapResultSet(rs));
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return list;
+}
+
+
 }
 

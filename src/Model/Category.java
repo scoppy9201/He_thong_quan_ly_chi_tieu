@@ -38,6 +38,15 @@ public class Category {
         this.ngayCapNhat = ngayCapNhat;
     }
 
+    
+    public enum LoaiDanhMuc {
+        THU, CHI
+    }
+    
+    public enum TrangThai {
+        ACTIVE, INACTIVE
+    }
+
     // Getter – Setter
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }

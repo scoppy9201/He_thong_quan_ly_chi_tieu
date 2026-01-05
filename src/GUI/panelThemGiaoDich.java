@@ -9,6 +9,7 @@ import Model.Category;
 import Model.CategoryItemPanel;
 import Model.MoneyDisplayPanel;
 import Model.Transaction;
+import Model.User;
 import Service.CategoryService;
 import Service.TransactionService;
 import Utils.HintUtils;
@@ -44,6 +45,8 @@ import java.util.Objects;
 import javax.swing.ButtonGroup;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
+import Service.EmailService;
+import Model.UserSession;
 
 /**
  *
@@ -431,12 +434,39 @@ public class panelThemGiaoDich extends javax.swing.JPanel {
             boolean success = new TransactionService().create(trans);
 
             if (success) {
+                try {
+                User currentUser = UserSession.getCurrentUser();
+                if (currentUser != null) {
+                    EmailService emailService = new EmailService();
+                    boolean emailSent = emailService.sendTransactionNotification(currentUser, trans);
+                    
+                    if (emailSent) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Thêm giao dịch thành công!\n" +
+                            "Email thông báo đã được gửi đến: " + currentUser.getEmail() +
+                            (selectedImageFile != null ? "\n Ảnh hóa đơn đã được lưu." : ""),
+                            "Thành công",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                            "Thêm giao dịch thành công!\n" +
+                            "Không thể gửi email thông báo (đã lưu vào hệ thống)" +
+                            (selectedImageFile != null ? "\n Ảnh hóa đơn đã được lưu." : ""),
+                            "Thành công",
+                            JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            } catch (Exception emailEx) {
+                // Email lỗi nhưng giao dịch đã lưu thành công
                 JOptionPane.showMessageDialog(this, 
-                    "Thêm giao dịch thành công!" +
-                    (selectedImageFile != null ? "\n📸 Ảnh hóa đơn đã được lưu." : ""),
-                    "Thành công",
-                    JOptionPane.INFORMATION_MESSAGE);
-                huyBo();
+                    "Thêm giao dịch thành công!\n" +
+                    " Lỗi khi gửi email: " + emailEx.getMessage(),
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+            // ============================================
+            
+            huyBo();
             } else {
                 JOptionPane.showMessageDialog(this, 
                     "Thêm giao dịch thất bại!",
