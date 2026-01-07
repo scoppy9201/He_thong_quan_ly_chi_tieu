@@ -3,10 +3,6 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
  */
 package GUI;
-import Model.BarChartPanel;
-import Model.PieChartPanel;
-import Model.MonthlyStatsPanel;
-import Model.YearlyStatsPanel;
 import Service.TransactionService;
 import Service.UserService;
 import java.awt.BorderLayout;
@@ -28,6 +24,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import org.openpdf.text.*;
+import org.openpdf.text.pdf.BaseFont;
 import org.openpdf.text.pdf.PdfWriter;
 
 public class panelBaoCaoThongKe extends javax.swing.JPanel {
@@ -38,10 +35,7 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
     private BarChartPanel barChartPanel;
     private MonthlyStatsPanel monthlyStatsPanel;
     private YearlyStatsPanel yearlyStatsPanel;
-    
-    /**
-     * Creates new form panelBaoCaoThongKe
-     */
+
     public panelBaoCaoThongKe(int userId) {
         this.transactionService = new TransactionService();
         this.userId = userId;
@@ -99,7 +93,6 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
 
     // Setup biểu đồ và thống kê
     private void setupCustomComponents() {
-        // Xóa placeholders và set layout
         Piechar.removeAll();
         Barchar.removeAll();
         panelThongKeThang.removeAll();
@@ -108,7 +101,6 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
         Barchar.setLayout(new BorderLayout());
         panelThongKeThang.setLayout(new BorderLayout());
         panelThongKeNam.setLayout(new BorderLayout());
-        // Khởi tạo và add panels
         pieChartPanel = new PieChartPanel();
         Piechar.add(pieChartPanel, BorderLayout.CENTER);
         barChartPanel = new BarChartPanel();
@@ -155,7 +147,7 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
             }
         });
         
-        // Event cho Xuất PDF (gộp với setupExportPdfEvent)
+        // Event cho Xuất PDF 
         lblXuatFile.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -552,15 +544,12 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
 
             if (iconURL != null) {
                 ImageIcon icon = new ImageIcon(iconURL);
-                // Lấy kích thước hiện tại của JLabel
                 int width = label.getWidth();
                 int height = label.getHeight();
 
-                // Nếu label chưa có kích thước (ví dụ khi mới khởi tạo), gán kích thước mặc định
                 if (width <= 0) width = 128;
                 if (height <= 0) height = 128;
 
-                // Co giãn ảnh theo kích thước của label
                 Image scaledImg = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                 label.setIcon(new ImageIcon(scaledImg));
                 label.setHorizontalAlignment(SwingConstants.CENTER);
@@ -574,69 +563,175 @@ public class panelBaoCaoThongKe extends javax.swing.JPanel {
         }
     }
     
-    // hàm nhận đương dẫn và nội dung thống kê
     private void exportToPdf() {
-        try {
-            JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle("Lưu báo cáo PDF");
-            chooser.setSelectedFile(new File("baocao.pdf"));
-            int result = chooser.showSaveDialog(this);
-            if (result != JFileChooser.APPROVE_OPTION) return;
-            String filePath = chooser.getSelectedFile().getAbsolutePath();
-            if (!filePath.toLowerCase().endsWith(".pdf")) {
-                filePath += ".pdf";
-            }
-            String content = getBaoCaoText();
-            boolean success = exportPdf(filePath, content);
-            JOptionPane.showMessageDialog(this,
-                success ? "Xuất PDF thành công!\n" + filePath : "Xuất PDF thất bại!",
-                success ? "Thành công" : "Lỗi",
-                success ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+    try {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu báo cáo PDF");
+        chooser.setSelectedFile(new File("BaoCao_" + getSelectedYear() + "_" + getSelectedMonth() + ".pdf"));
+        
+        int result = chooser.showSaveDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) return;
+        
+        String filePath = chooser.getSelectedFile().getAbsolutePath();
+        if (!filePath.toLowerCase().endsWith(".pdf")) {
+            filePath += ".pdf";
         }
+        
+        // Lấy nội dung và xuất PDF
+        String content = getBaoCaoText();
+        boolean success = exportPdf(filePath, content);
+        
+        JOptionPane.showMessageDialog(this,
+            success ? "Xuất PDF thành công!\n" + filePath : "Xuất PDF thất bại!",
+            success ? "Thành công" : "Lỗi",
+            success ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
+            
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, 
+            "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
     }
-    
+}
+
+    // Hàm kéo dữ liệu thống kê vào báo cáo 
     public String getBaoCaoText() {
         int month = getSelectedMonth();
         int year = getSelectedYear();
         String mode = getSelectedMode();
+
         StringBuilder content = new StringBuilder();
-        content.append("THỐNG KÊ & BÁO CÁO\n");
+        content.append("== BÁO CÁO THỐNG KÊ GIAO DỊCH ==\n\n");
         content.append("Chế độ: ").append(mode).append("\n");
-        content.append("Tháng: ").append(month).append(" - Năm: ").append(year).append("\n");
-        content.append("--------------------------------------\n");
-        // Lấy dữ liệu từ monthlyStatsPanel nếu có
-        if (monthlyStatsPanel != null && panelThongKeThang.isVisible()) {
-            Map<String, Object> stats = monthlyStatsPanel.getData(); // Giả sử có phương thức getData()
+        content.append("Tháng: ").append(month).append(" | Năm: ").append(year).append("\n");
+        content.append("Ngày xuất: ").append(java.time.LocalDate.now()).append("\n");
+        content.append("==========================================\n\n");
+
+        // thống kê theo tháng 
+        if (panelThongKeThang.isVisible() && monthlyStatsPanel != null) {
+            content.append("[ THỐNG KÊ THÁNG ").append(month).append("/").append(year).append(" ]\n");
+            Map<String, Object> stats = monthlyStatsPanel.getData();
             if (stats != null) {
-                stats.forEach((key, value) -> content.append(key).append(": ").append(value).append("\n"));
+                content.append("Tổng thu: ").append(formatMoney(stats.get("TongThu"))).append(" VNĐ\n");
+                content.append("Tổng chi: ").append(formatMoney(stats.get("TongChi"))).append(" VNĐ\n");
+                content.append("Số dư: ").append(formatMoney(stats.get("SoDu"))).append(" VNĐ\n");
+                content.append("Số giao dịch: ").append(stats.get("SoGiaoDich")).append("\n\n");
             }
         }
-        // Lấy từ yearlyStatsPanel
-        if (yearlyStatsPanel != null && panelThongKeNam.isVisible()) {
-            Map<String, Object> stats = yearlyStatsPanel.getData(); // Giả sử có phương thức getData()
+
+        // thống kê theo năm 
+        if (panelThongKeNam.isVisible() && yearlyStatsPanel != null) {
+            content.append("[ THỐNG KÊ NĂM ").append(year).append(" ]\n");
+            Map<String, Object> stats = yearlyStatsPanel.getData();
             if (stats != null) {
-                stats.forEach((key, value) -> content.append(key).append(": ").append(value).append("\n"));
+                content.append("Tổng thu năm: ").append(formatMoney(stats.get("TongThuNam"))).append(" VNĐ\n");
+                content.append("Tổng chi năm: ").append(formatMoney(stats.get("TongChiNam"))).append(" VNĐ\n");
+                content.append("Số dư năm: ").append(formatMoney(stats.get("SoDu"))).append(" VNĐ\n");
+                content.append("TB chi/tháng: ").append(formatMoney(stats.get("TrungBinhChiMoiThang"))).append(" VNĐ\n");
+                content.append("Tháng chi nhiều nhất: Tháng ").append(stats.get("ThangChiLonNhat")).append("\n\n");
             }
         }
-        content.append("Báo cáo tự động tạo bởi hệ thống.");
+
+        // chi tiêu theo danh mục (từ Pie Chart)
+        if (pieChartPanel != null) {
+            content.append("[ CƠ CẤU CHI TIÊU THEO DANH MỤC ]\n");
+            Map<String, Double> categoryData = pieChartPanel.getData();
+            if (categoryData != null && !categoryData.isEmpty()) {
+                double total = categoryData.values().stream().mapToDouble(Double::doubleValue).sum();
+                categoryData.entrySet().stream()
+                    .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                    .forEach(entry -> {
+                        double percent = (entry.getValue() / total) * 100;
+                        content.append(String.format("- %s: %s VNĐ (%.1f%%)\n", 
+                            entry.getKey(), formatMoney(entry.getValue()), percent));
+                    });
+                content.append("\n");
+            }
+        }
+
+        // xu hướng chi tiêu (từ Bar Chart)
+        if (barChartPanel != null) {
+            content.append("[ XU HƯỚNG CHI TIÊU THEO THÁNG ]\n");
+            Map<Integer, Double> trendData = barChartPanel.getData();
+            if (trendData != null && !trendData.isEmpty()) {
+                trendData.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(entry -> {
+                        content.append(String.format("Tháng %d: %s VNĐ\n", 
+                            entry.getKey(), formatMoney(entry.getValue())));
+                    });
+                content.append("\n");
+            }
+        }
+
+        // top 5 giao dịch chi tiêu lớn nhất 
+        content.append("[ TOP 5 CHI TIÊU LỚN NHẤT ]\n");
+        var topExpenses = transactionService.getTopExpenses(userId, 5);
+        if (topExpenses != null && !topExpenses.isEmpty()) {
+            int rank = 1;
+            for (var trans : topExpenses) {
+                content.append(String.format("%d. %s - %s VNĐ (%s)\n", 
+                    rank++, 
+                    trans.getTenDanhMuc(), 
+                    formatMoney(trans.getSoTien()), 
+                    trans.getNgayGiaoDich()));
+            }
+        } else {
+            content.append("Chưa có dữ liệu\n");
+        }
+
+        content.append("\n=========================================\n");
+        content.append("Báo cáo được tạo tự động bởi hệ thống\n");
+
         return content.toString();
     }
-    
+
+    // Hàm xuất file PDF (hỗ trợ tiếng việt)
     public boolean exportPdf(String filePath, String content) {
         try {
             Document document = new Document();
             PdfWriter.getInstance(document, new FileOutputStream(filePath));
             document.open();
-            document.add(new Paragraph("THỐNG KÊ & BÁO CÁO"));
-            document.add(new Paragraph("--------------------------------------------------"));
-            document.add(new Paragraph(content));
+
+            // Font hỗ trợ tiếng Việt
+            BaseFont bf = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            Font normalFont = new Font(bf, 11);
+            Font titleFont = new Font(bf, 16, Font.BOLD);
+            Font headerFont = new Font(bf, 12, Font.BOLD);
+
+            // Tiêu đề
+            Paragraph title = new Paragraph("BÁO CÁO THỐNG KÊ GIAO DỊCH", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph(" ", normalFont));
+
+            // Nội dung
+            String[] lines = content.split("\n");
+            for (String line : lines) {
+                if (line.startsWith("[")) {
+                    document.add(new Paragraph(line, headerFont));
+                } else {
+                    document.add(new Paragraph(line, normalFont));
+                }
+            }
+
             document.close();
             return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    // Hàm format tiền 
+    private String formatMoney(Object value) {
+        if (value == null) return "0";
+        try {
+            double amount = value instanceof Double ? (Double) value : 
+                           value instanceof Integer ? ((Integer) value).doubleValue() :
+                           Double.parseDouble(value.toString());
+            return String.format("%,.0f", amount);
+        } catch (Exception e) {
+            return value.toString();
         }
     }
 

@@ -5,10 +5,7 @@
 package GUI;
 
 import Model.Budget;
-import Model.BudgetItemPanel;
 import Model.Category;
-import Model.CategoryItemPanel;
-import Model.CategoryParentPanel;
 import Service.BudgetService;
 import Service.CategoryService;
 import Utils.HintUtils;

@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package Model;
+package GUI;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -12,7 +12,9 @@ import org.jfree.data.general.DefaultPieDataset;
 import javax.swing.*;
 import java.awt.*;
 import java.text.DecimalFormat;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PieChartPanel extends JPanel {
     
@@ -21,7 +23,11 @@ public class PieChartPanel extends JPanel {
     private DefaultPieDataset dataset;
     private JLabel lblTitle;
     
+    // Lưu trữ dữ liệu để có thể get lại
+    private Map<String, Double> currentData;
+    
     public PieChartPanel() {
+        this.currentData = new HashMap<>();
         initComponents();
     }
     
@@ -79,6 +85,13 @@ public class PieChartPanel extends JPanel {
     public void updateData(Map<String, Double> data) {
         dataset.clear();
         
+        // ✅ LƯU DỮ LIỆU VÀO BIẾN INSTANCE
+        if (data != null) {
+            this.currentData = new HashMap<>(data);
+        } else {
+            this.currentData = new HashMap<>();
+        }
+        
         if (data == null || data.isEmpty()) {
             // Hiển thị thông báo không có dữ liệu
             JLabel lblNoData = new JLabel("Không có dữ liệu chi tiêu");
@@ -114,10 +127,185 @@ public class PieChartPanel extends JPanel {
     }
     
     /**
+     * Lấy dữ liệu hiện tại của biểu đồ
+     * @return Map<String, Double> - key: tên danh mục, value: số tiền
+     */
+    public Map<String, Double> getData() {
+        // Trả về copy để tránh modification từ bên ngoài
+        return new HashMap<>(currentData);
+    }
+    
+    /**
+     * Kiểm tra có dữ liệu không
+     * @return true nếu có dữ liệu
+     */
+    public boolean hasData() {
+        return currentData != null && !currentData.isEmpty();
+    }
+    
+    /**
+     * Lấy tổng chi tiêu
+     * @return Tổng số tiền đã chi
+     */
+    public double getTotalExpense() {
+        if (currentData == null || currentData.isEmpty()) {
+            return 0.0;
+        }
+        return currentData.values().stream()
+            .mapToDouble(Double::doubleValue)
+            .sum();
+    }
+    
+    /**
+     * Lấy danh mục chi tiêu nhiều nhất
+     * @return Tên danh mục hoặc null nếu không có dữ liệu
+     */
+    public String getTopCategory() {
+        if (currentData == null || currentData.isEmpty()) {
+            return null;
+        }
+        return currentData.entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .orElse(null);
+    }
+    
+    /**
+     * Lấy số tiền của danh mục chi nhiều nhất
+     * @return Số tiền
+     */
+    public double getTopCategoryAmount() {
+        if (currentData == null || currentData.isEmpty()) {
+            return 0.0;
+        }
+        return currentData.values().stream()
+            .max(Double::compare)
+            .orElse(0.0);
+    }
+    
+    /**
+     * Lấy top N danh mục chi tiêu nhiều nhất
+     * @param n Số lượng danh mục cần lấy
+     * @return Map đã sắp xếp giảm dần theo số tiền
+     */
+    public Map<String, Double> getTopCategories(int n) {
+        if (currentData == null || currentData.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        return currentData.entrySet().stream()
+            .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+            .limit(n)
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (e1, e2) -> e1,
+                java.util.LinkedHashMap::new // Giữ thứ tự
+            ));
+    }
+    
+    /**
+     *  Tính phần trăm của một danh mục
+     * @param categoryName Tên danh mục
+     * @return Phần trăm (0-100) hoặc 0 nếu không tìm thấy
+     */
+    public double getPercentage(String categoryName) {
+        if (currentData == null || currentData.isEmpty() || categoryName == null) {
+            return 0.0;
+        }
+        
+        Double amount = currentData.get(categoryName);
+        if (amount == null) {
+            return 0.0;
+        }
+        
+        double total = getTotalExpense();
+        if (total == 0) {
+            return 0.0;
+        }
+        
+        return (amount / total) * 100.0;
+    }
+    
+    /**
+     *  Lấy số lượng danh mục
+     * @return Số lượng danh mục có dữ liệu
+     */
+    public int getCategoryCount() {
+        if (currentData == null) {
+            return 0;
+        }
+        return currentData.size();
+    }
+    
+    /**
+     * Lấy danh sách tất cả tên danh mục
+     * @return Set chứa tên các danh mục
+     */
+    public java.util.Set<String> getCategoryNames() {
+        if (currentData == null) {
+            return new java.util.HashSet<>();
+        }
+        return new java.util.HashSet<>(currentData.keySet());
+    }
+    
+    /**
+     * Lấy số tiền của một danh mục cụ thể
+     * @param categoryName Tên danh mục
+     * @return Số tiền hoặc 0 nếu không tìm thấy
+     */
+    public double getAmountByCategory(String categoryName) {
+        if (currentData == null || categoryName == null) {
+            return 0.0;
+        }
+        return currentData.getOrDefault(categoryName, 0.0);
+    }
+    
+    /**
+     * Format dữ liệu thành text để export
+     * @return String chứa thông tin chi tiết
+     */
+    public String getFormattedDataText() {
+        if (currentData == null || currentData.isEmpty()) {
+            return "Không có dữ liệu";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        double total = getTotalExpense();
+        
+        sb.append("Tổng chi tiêu: ").append(String.format("%,.0f VNĐ", total)).append("\n");
+        sb.append("Số danh mục: ").append(getCategoryCount()).append("\n\n");
+        sb.append("Chi tiết:\n");
+        
+        // Sắp xếp theo số tiền giảm dần
+        currentData.entrySet().stream()
+            .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+            .forEach(entry -> {
+                double percent = (entry.getValue() / total) * 100;
+                sb.append(String.format("- %s: %,.0f VNĐ (%.1f%%)\n", 
+                    entry.getKey(), 
+                    entry.getValue(), 
+                    percent));
+            });
+        
+        return sb.toString();
+    }
+    
+    /**
      * Update title
      */
     public void setTitle(String title) {
         lblTitle.setText(title);
+    }
+    
+    /**
+     * Clear all data
+     */
+    public void clearData() {
+        currentData.clear();
+        dataset.clear();
+        revalidate();
+        repaint();
     }
     
     /**

@@ -4,12 +4,10 @@
  */
 package GUI;
 
-import Model.CategoryParentPanel;
 import Model.Category;
-import Model.CategoryItemPanel;
 import Model.Transaction;
-import Model.TransactionItemPanel;
 import Model.User;
+import Model.UserSession;
 import Service.CategoryService;
 import Service.EmailService;
 import Service.TransactionService;
@@ -51,6 +49,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerDateModel;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 
 /**
@@ -65,16 +64,15 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
     private javax.swing.Timer searchTimer;
     private int userId;
     private User currentUser;
+    private JTabbedPane tabMain;
     
     private static final String DATE_FORMAT = "dd/MM/yyyy";
     private final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);  // Formatter để parse
     private File selectedImageFile = null;
     private javax.swing.JButton btnUploadImage;
-    
-    /**
-     * Creates new form panelQuanLyDanhMuc
-     */
+
+    // Contructor khởi tạo panel 
     public panelQuanLyGiaoDich(int userId) {
         this.userId = userId;
         this.currentUser = new UserService().getUserById(userId);
@@ -84,11 +82,11 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             loadCategoriesToComboBox();
             loadTransactions(); 
             lockAllFields();
-            setupAvatarClick();
-            resetFilter(); // bộ lọc ngày 
+            resetFilter(); 
         });
         setupButtonListeners();
         setupSearchListener();
+        tabMain = new javax.swing.JTabbedPane();
         
         // Set hints
         HintUtils.setHint(txtTenDM, "Hệ thống tự động hiển thị...");
@@ -101,6 +99,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         lblAvatar.setPreferredSize(new Dimension(120, 120));
     }
 
+    // Đăng ký sự kiện cho các button và label 
     private void setupButtonListeners() {
         btnCapNhat.addActionListener(e -> updateTransaction());
         btnXoa.addActionListener(e -> deleteTransaction());
@@ -135,8 +134,11 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
                 showDatePickerForEnd();
             }
         });
+        
+        setupAvatarClick();
     }
     
+    // Đăng ký documentlistener cho ô tìm kiếm 
     private void setupSearchListener() {
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
@@ -154,6 +156,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         });
     }
 
+    // delay tìm kiếm -> giảm tải request đẩy lên serve 
     private void scheduleSearch() {
         if (searchTimer != null) {
             searchTimer.stop();
@@ -163,12 +166,27 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         searchTimer.start();
     }
     
+    // Hàm thực hiện tìm kiếm giao dịch 
     private void performSearch() {
         String keyword = txtSearch.getText().trim();
         if (keyword.isEmpty()) {
             loadTransactions();
         } else {
             loadSearchResults(keyword);
+        }
+    }
+    
+    // Hiển thị data tìm kiếm => performSearch()
+    private void loadSearchResults(String keyword) {
+        try {
+            List<Transaction> transactions = new TransactionService().search(keyword);
+            // Lọc theo userId
+            transactions = transactions.stream()
+                .filter(t -> t != null && t.getNguoiDungId() == userId)
+                .collect(Collectors.toList());
+            displayTransactions(transactions);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
@@ -250,43 +268,45 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         }
     }
 
-    // Áp dụng bộ lọc
+    // Hàm xử lý bộ lọc 
     private void applyFilter() {
         try {
             String selectedDanhMuc = (String) jcbDanhMuc.getSelectedItem();
             String selectedLoai = (String) jcbLoaiGiaoDich.getSelectedItem();
             String selectedPhuongThuc = (String) jcbPhuongThuc.getSelectedItem();
+            
+            String fromDateStr = lblNgayBatDau.getText().trim();
+            String toDateStr = lblNgayKetThuc.getText().trim();
 
-            // Kiểm tra trường ngày có trống -> set ngày hiên tại 
-            LocalDate fromDate = lblNgayBatDau.getText().trim().isEmpty() 
-                ? LocalDate.now() 
-                : LocalDate.parse(lblNgayBatDau.getText().trim(), DATE_FORMATTER);
-            LocalDate toDate = lblNgayKetThuc.getText().trim().isEmpty() 
-                ? LocalDate.now() 
-                : LocalDate.parse(lblNgayKetThuc.getText().trim(), DATE_FORMATTER);
-            if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            if (fromDateStr.isEmpty() || toDateStr.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn khoảng thời gian!");
+                return;
+            }
+
+            LocalDate fromDate = LocalDate.parse(fromDateStr, DATE_FORMATTER);
+            LocalDate toDate = LocalDate.parse(toDateStr, DATE_FORMATTER);
+
+            if (fromDate.isAfter(toDate)) {
                 JOptionPane.showMessageDialog(this,
                     "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!");
                 return;
             }
 
             List<Transaction> transactions = new TransactionService().getWithFilters(
-                    userId,
-                    selectedDanhMuc,
-                    selectedLoai,
-                    selectedPhuongThuc,
-                    fromDate,
-                    toDate
+                userId, selectedDanhMuc, selectedLoai, selectedPhuongThuc, fromDate, toDate
             );
 
             displayTransactions(transactions);
 
+        } catch (DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this, "Định dạng ngày không đúng (dd/MM/yyyy)!");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Lỗi khi lọc: " + e.getMessage());
         }
     }
     
+    // Reset bộ lọc về mặc đinh 
     private void resetFilter() {
         jcbDanhMuc.setSelectedIndex(0);
         jcbLoaiGiaoDich.setSelectedIndex(0);
@@ -297,6 +317,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         loadTransactions();
     }
     
+    // Hiển thị tất cả giao dịch của user 
     private void loadTransactions() {
         try {
             List<Transaction> transactions = new TransactionService().getByUser(userId);
@@ -306,62 +327,68 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         }
     }
     
-    private void loadSearchResults(String keyword) {
-        try {
-            List<Transaction> transactions = new TransactionService().search(keyword);
-            // Lọc theo userId
-            transactions = transactions.stream()
-                .filter(t -> t != null && t.getNguoiDungId() == userId)
-                .collect(Collectors.toList());
-            displayTransactions(transactions);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
+    // Hiển thị danh sách các giao dịch của 1 user => loadTransactions()
     private void displayTransactions(List<Transaction> transactions) {
         panelGiaoDich.removeAll();
         panelGiaoDich.setLayout(new BoxLayout(panelGiaoDich, BoxLayout.Y_AXIS));
         panelGiaoDich.setBackground(new Color(248, 249, 250));
         panelGiaoDich.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        
-        // Cập nhật tổng số giao dịch
+
         lblSoLuong.setText(String.valueOf(transactions != null ? transactions.size() : 0));
-        
-         if (transactions == null || transactions.isEmpty()) {
-            JLabel lblEmpty = new JLabel("Không có giao dịch nào");
-            lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
-            lblEmpty.setForeground(Color.GRAY);
-            lblEmpty.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-            panelGiaoDich.add(Box.createRigidArea(new Dimension(0, 50)));
-            panelGiaoDich.add(lblEmpty);
+
+        if (transactions == null || transactions.isEmpty()) {
+            showEmptyMessage();
         } else {
-            for (Transaction trans : transactions) {
-                if (trans == null) continue; // bỏ qua các giao dịch null 
-                TransactionItemPanel itemPanel = new TransactionItemPanel(trans);
-                itemPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                itemPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-                    public void mouseClicked(java.awt.event.MouseEvent evt) {
-                        showTransactionDetails(trans);
-                    }
-                    public void mouseEntered(java.awt.event.MouseEvent evt) {
-                        itemPanel.setBackground(new Color(240, 248, 255));
-                    }
-                    public void mouseExited(java.awt.event.MouseEvent evt) {
-                        itemPanel.setBackground(Color.WHITE);
-                    }
-                });
-                panelGiaoDich.add(itemPanel);
-                panelGiaoDich.add(Box.createRigidArea(new Dimension(0, 10)));
-            }
+            addTransactionItems(transactions);
         }
-        
+
         panelGiaoDich.revalidate();
         panelGiaoDich.repaint();
     }
     
+    // Nếu data từ list Transaction = 0 => empty 
+    private void showEmptyMessage() {
+        JLabel lblEmpty = new JLabel("Không có giao dịch nào");
+        lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 14));
+        lblEmpty.setForeground(Color.GRAY);
+        lblEmpty.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+        panelGiaoDich.add(Box.createRigidArea(new Dimension(0, 50)));
+        panelGiaoDich.add(lblEmpty);
+    }
+    
+    // Nếu có data → tạo các TransactionItemPanel
+    private void addTransactionItems(List<Transaction> transactions) {
+        for (Transaction trans : transactions) {
+            if (trans == null) continue;
+
+            TransactionItemPanel itemPanel = createTransactionItem(trans);
+            panelGiaoDich.add(itemPanel);
+            panelGiaoDich.add(Box.createRigidArea(new Dimension(0, 10)));
+        }
+    }
+    
+    // Tạo 1 item panel với sự kiện => 1 giao dịch = 1 compoment riêng 
+    private TransactionItemPanel createTransactionItem(Transaction trans) {
+        TransactionItemPanel itemPanel = new TransactionItemPanel(trans);
+        itemPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        itemPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                showTransactionDetails(trans);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                itemPanel.setBackground(new Color(240, 248, 255));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                itemPanel.setBackground(Color.WHITE);
+            }
+        });
+        return itemPanel;
+    }
+    
     // Hiển thị chi tiết giao dịch 
     private void showTransactionDetails(Transaction trans) {
+        // isEditMode => tránh user thay đổi transaction đang chỉnh sửa
         if (isEditMode || trans == null ) {
             return;
         }
@@ -389,12 +416,11 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         }
     }
     
-    // Cập nhật giao dịch -> cho cả upload ảnh gioa dịch 
+    // Cập nhật giao dịch -> Gửi eamil sau khi cập nhật thành công 
     private void updateTransaction() {
         if (!isEditMode) {
             if (selectedTransaction == null) {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Vui lòng chọn giao dịch cần cập nhật!");
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn giao dịch cần cập nhật!");
                 return;
             }
             unlockFieldsForEdit();
@@ -404,18 +430,20 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             return;
         }
 
-        // Xác nhận cập nhật
+        // Kiểm tra đầu vào request 
+        if (!validateFields()) {
+            return;
+        }
+
         try {
             selectedTransaction.setSoTien(new java.math.BigDecimal(txtSoTien.getText().trim()));
             selectedTransaction.setPhuongThuc(txtPhuongThuc.getText().trim());
             selectedTransaction.setGhiChu(txtGhiChu.getText().trim());
 
             Date selectedDate = (Date) jspNgayGiaoDich.getValue();
-            LocalDate localDate = selectedDate.toInstant()
-                .atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate localDate = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             selectedTransaction.setNgayGiaoDich(localDate);
 
-            // lưu ảnh hóa đơn nếu có 
             if (selectedImageFile != null) {
                 String savedPath = saveImageToFolder(selectedImageFile);
                 if (savedPath != null) {
@@ -428,23 +456,20 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             if (success) {
                 EmailService emailService = new EmailService();
                 emailService.sendTransactionUpdateNotification(currentUser, selectedTransaction);
-                
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Cập nhật giao dịch thành công!");
+
+                JOptionPane.showMessageDialog(this, "Cập nhật giao dịch thành công!");
                 loadTransactions();
                 resetToViewMode();
-                selectedImageFile = null; // Reset
+                selectedImageFile = null;
             } else {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Cập nhật giao dịch thất bại!");
+                JOptionPane.showMessageDialog(this, "Cập nhật giao dịch thất bại!");
             }
         } catch (Exception ex) {
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Lỗi: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
         }
     }
     
-    // Xóa giao dịch 
+    // Xóa giao dịch -> Gửi email khi xóa thành công 
     private void deleteTransaction() {
         if (selectedTransaction == null) {
             javax.swing.JOptionPane.showMessageDialog(this, "Vui lòng chọn giao dịch cần xóa!");
@@ -470,7 +495,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         }
     }
     
-    // Hủy bỏ thao tác 
+    // Hủy bỏ thao tác hiện tại 
     private void cancelTransaction() {
         selectedTransaction = null;
         selectedImageFile = null;
@@ -509,6 +534,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         isEditMode = true;
     }
     
+    // Reset về chế độ xem 
     private void resetToViewMode() {
         lockAllFields();
         btnCapNhat.setText("Cập nhật");
@@ -517,7 +543,6 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         btnThemMoi.setEnabled(true);
     }
     
-    // Setup sự kiện click vào ảnh để phóng to hoặc đổi ảnh
     private void setupAvatarClick() {
         lblAvatar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         lblAvatar.setToolTipText("Click để xem hoặc thay đổi ảnh hóa đơn");
@@ -525,60 +550,59 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         lblAvatar.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (selectedTransaction == null) return;
-
-                boolean hasImage = selectedTransaction.getAnhHoaDon() != null 
-                                   && !selectedTransaction.getAnhHoaDon().isEmpty();
-
-                // Trường hợp click chuột phải hoặc đang trong chế độ chỉnh sửa
-                if (evt.getButton() == java.awt.event.MouseEvent.BUTTON3 || isEditMode) {
-                    String[] options = {"Xem ảnh", "Thay đổi ảnh", "Hủy bỏ"};
-                    int choice = JOptionPane.showOptionDialog(
-                            panelQuanLyGiaoDich.this,
-                            "Bạn muốn thực hiện hành động nào?",
-                            "Tùy chọn",
-                            JOptionPane.DEFAULT_OPTION,
-                            JOptionPane.INFORMATION_MESSAGE,
-                            null,
-                            options,
-                            options[0]
-                    );
-
-                    switch (choice) {
-                        case 0: // Xem ảnh
-                            if (hasImage) {
-                                showFullSizeImage(selectedTransaction.getAnhHoaDon());
-                            } else {
-                                JOptionPane.showMessageDialog(panelQuanLyGiaoDich.this,
-                                        "Giao dịch này chưa có hóa đơn!");
-                            }
-                            break;
-
-                        case 1: // Thay đổi ảnh
-                            if (isEditMode) {
-                                uploadInvoiceImage();
-                            } else {
-                                JOptionPane.showMessageDialog(panelQuanLyGiaoDich.this,
-                                        "Bạn chỉ có thể thay đổi ảnh khi đang chỉnh sửa!");
-                            }
-                            break;
-
-                        default:
-                            // Hủy bỏ - không làm gì
-                            break;
-                    }
-
-                } else {
-                    // Click chuột trái → Xem ảnh
-                    if (hasImage) {
-                        showFullSizeImage(selectedTransaction.getAnhHoaDon());
-                    } else {
-                        JOptionPane.showMessageDialog(panelQuanLyGiaoDich.this,
-                                "Giao dịch này chưa có hóa đơn!");
-                    }
-                }
+                handleAvatarClick(evt);
             }
         });
+    }
+    
+    // Hàm xử lý sự kiện click vào hóa đơn 
+    private void handleAvatarClick(java.awt.event.MouseEvent evt) {
+        if (selectedTransaction == null) return;
+
+        boolean hasImage = selectedTransaction.getAnhHoaDon() != null 
+                           && !selectedTransaction.getAnhHoaDon().isEmpty();
+
+        // Click chuột phải hoặc đang edit
+        if (evt.getButton() == java.awt.event.MouseEvent.BUTTON3 || isEditMode) {
+            showImageOptions(hasImage);
+        } else {
+            // Click chuột trái -> Xem ảnh
+            viewImage(hasImage);
+        }
+    }
+
+    // Hiển thị menu options
+    private void showImageOptions(boolean hasImage) {
+        String[] options = {"Xem ảnh", "Thay đổi ảnh", "Hủy bỏ"};
+        int choice = JOptionPane.showOptionDialog(
+            this, "Bạn muốn thực hiện hành động nào?", "Tùy chọn",
+            JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
+            null, options, options[0]
+        );
+
+        switch (choice) {
+            case 0 -> viewImage(hasImage);
+            case 1 -> changeImage();
+        }
+    }
+
+    // Xem ảnh
+    private void viewImage(boolean hasImage) {
+        if (hasImage) {
+            showFullSizeImage(selectedTransaction.getAnhHoaDon());
+        } else {
+            JOptionPane.showMessageDialog(this, "Giao dịch này chưa có hóa đơn!");
+        }
+    }
+
+    // Thay đổi ảnh
+    private void changeImage() {
+        if (isEditMode) {
+            uploadInvoiceImage();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Bạn chỉ có thể thay đổi ảnh khi đang chỉnh sửa!");
+        }
     }
     
     // Hiển thị ảnh hóa đơn lên lblAvatar
@@ -754,6 +778,58 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
         this.panelNganSach = panel;
     }
     
+    // Kiểm tra dữ liệu trước khi đẩy vào db 
+    private boolean validateFields() {
+        // Check số tiền
+        String soTienStr = txtSoTien.getText().trim();
+        if (soTienStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập số tiền!");
+            txtSoTien.requestFocus();
+            return false;
+        }
+
+        try {
+            java.math.BigDecimal soTien = new java.math.BigDecimal(soTienStr);
+            if (soTien.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                JOptionPane.showMessageDialog(this, "Số tiền phải lớn hơn 0!");
+                txtSoTien.requestFocus();
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Số tiền không hợp lệ!");
+            txtSoTien.requestFocus();
+            return false;
+        }
+
+        // Check phương thức
+        if (txtPhuongThuc.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập phương thức!");
+            txtPhuongThuc.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+    
+    // Mở tab thêm mới giao dịch 
+    public void openAddTransactionTab() {
+        for (int i = 0; i < tabMain.getTabCount(); i++) {
+            if (tabMain.getTitleAt(i).equals("Thêm giao dịch")) {
+                tabMain.removeTabAt(i);
+                break;
+            }
+        }
+
+        User currentUser = UserSession.getCurrentUser();
+        if (currentUser == null) {
+            JOptionPane.showMessageDialog(this, "Chưa đăng nhập!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        panelQuanLyGiaoDich pnlQLGD = new panelQuanLyGiaoDich(currentUser.getId());
+        tabMain.addTab("Thêm giao dịch", pnlQLGD);
+        tabMain.setSelectedComponent(pnlQLGD);
+    }
     
     /**
      * This method is called from within the constructor to initialize the form.
@@ -1319,7 +1395,7 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
     }//GEN-LAST:event_lblNgayKetThucActionPerformed
 
     private void btnThemMoiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnThemMoiActionPerformed
-        // TODO add your handling code here:
+        openAddTransactionTab();
     }//GEN-LAST:event_btnThemMoiActionPerformed
 
     private void setupLabelIcons() {
@@ -1370,12 +1446,6 @@ public class panelQuanLyGiaoDich extends javax.swing.JPanel {
             System.err.println("Lỗi khi load icon cho label: " + path);
             e.printStackTrace();
         }
-    }
-    
-    private ImageIcon resizeIcon(String path, int width, int height) {
-        ImageIcon icon = new ImageIcon(getClass().getResource(path));
-        Image img = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-        return new ImageIcon(img);
     }
 
 

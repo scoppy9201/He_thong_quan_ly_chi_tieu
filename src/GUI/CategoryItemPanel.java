@@ -1,4 +1,5 @@
-package Model;
+package GUI;
+import Model.Category;
 import java.awt.*;
 import javax.swing.*;
 

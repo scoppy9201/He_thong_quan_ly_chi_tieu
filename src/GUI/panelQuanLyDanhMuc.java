@@ -4,9 +4,7 @@
  */
 package GUI;
 
-import Model.CategoryParentPanel;
 import Model.Category;
-import Model.CategoryItemPanel;
 import Service.CategoryService;
 import Utils.HintUtils;
 import java.awt.BorderLayout;
